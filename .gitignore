@@ -1,0 +1,76 @@
+# Byte-compiled / optimized files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Environment variables / secrets
+.env
+.env.*
+!.env.example
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# Testing / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.mypy_cache/
+.ruff_cache/
+
+# Logs (keep progress logs, ignore everything else under logs/)
+logs/**
+!logs/**/
+!logs/progress/**
+*.log
+
+# Data files (keep directory structure via .gitkeep)
+data/**
+!data/**/
+!data/**/.gitkeep
+*.csv
+*.tsv
+*.parquet
+*.pkl
+*.pickle
+*.h5
+*.hdf5
+*.feather
+*.db
+*.sqlite
+*.sqlite3
+
+# Model artifacts / outputs (keep directory structure via .gitkeep)
+outputs/**
+!outputs/**/
+!outputs/**/.gitkeep
+*.joblib
+*.model
+models/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE / editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Type checkers
+.pyright/
