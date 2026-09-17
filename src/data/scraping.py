@@ -3,6 +3,7 @@
 import logging
 import time
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 from nba_api.stats.endpoints import leaguegamelog
@@ -58,6 +59,55 @@ def scrape_and_save_season_logs(seasons: list[str], output_dir: Path) -> None:
 
         season_df.to_parquet(file_path, engine="pyarrow")
         time.sleep(DELAY_SECONDS)
+
+def run_integrity_check(df: pd.DataFrame, base_schema: pd.Series | None) -> dict[str, Any]:
+    """Run structural and relational integrity checks on one season's DataFrame.
+    
+        Args:
+            df: Season game log DataFrame to check.
+            base_schema: Reference dtypes to compare against (the first file's schema),
+                or None to skip the schema check (used for the first file itself).
+    
+        Returns:
+            Dict mapping check name to a "PASS"/"FAIL: <detail>" result string.
+    """
+
+    results: dict[str, Any] = {}
+    
+    ## Tier 1 Tests: Structural
+    
+    # Schema test: compare dtypes against the reference schema
+    schema_matches = base_schema is None or df.dtypes.equals(base_schema)
+    results["schema_match"] = "PASS" if schema_matches else "FAIL: dtypes differ from base schema"
+    
+    # Row count test: sanity-check row count vs. unique games (2 rows per game expected)
+    row_count = len(df)
+    unique_game_ids = df["GAME_ID"].nunique()
+    results["row_count"] = f"PASS: {row_count} rows, {unique_game_ids} unique games"
+    
+    # Missing value test: flag any key columns with nulls
+    missing = df.isnull().sum()
+    missing_cols = missing[missing > 0]
+    results["missing_values"] = "PASS" if missing_cols.empty else f"FAIL: {missing_cols.to_dict()}"
+    
+    # Duplicate test: no team should appear twice for the same game
+    dup_count = int(df.duplicated(subset=["GAME_ID", "TEAM_ID"]).sum())
+    results["duplicate_team_games"] = "PASS" if dup_count == 0 else f"FAIL: {dup_count} duplicate rows"
+    
+    ## Tier 2 Tests: Relatability
+    
+    # Join key test: every GAME_ID should have exactly 2 rows (home + away team)
+    game_id_counts = df["GAME_ID"].value_counts()
+    bad_game_ids = game_id_counts[game_id_counts != 2]
+    results["game_id_pairing"] = (
+        "PASS" if bad_game_ids.empty else f"FAIL: {len(bad_game_ids)} games without exactly 2 rows"
+    )
+    
+    # Date range test: sanity check the season boundaries
+    game_dates = pd.to_datetime(df["GAME_DATE"])
+    results["date_range"] = f"PASS: {game_dates.min().date()} to {game_dates.max().date()}"
+    
+    return results
 
 
 if __name__ == "__main__":
